@@ -1,2 +1,2 @@
-# CISSL-GANs
+# CISSL
 Under TMI Review
