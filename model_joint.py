@@ -118,9 +118,6 @@ class Model(object):
 
             d_loss_real_tf = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels = tf.ones_like(D_real_logits_tf), logits = D_real_logits_tf))
             d_loss_fake_good_tf = 0.5 * tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels = tf.zeros_like(D_fake_logits_good_tf), logits = D_fake_logits_good_tf))
-
-            d_wgangp_penalty = 10 * wgangp_penalty(C, x, fake_image_good, label)
-            d_l2_penalty = 1e-9 * l2_penalty(C)
             
             d_unl_add=tf.constant(1e-10)
             d_loss_unl_tf_tmp=tf.constant(0.0)
@@ -144,7 +141,6 @@ class Model(object):
             
             # Conditional entropy
             c_ent = 0.1 * tf.reduce_mean(tf.distributions.Categorical(logits=D_unl_logits).entropy())
-            c_loss_balance = 0.05 * self._balance_entropy(D_unl_logits)
             
             # Batch Nuclear-norm Maximization
             c_bnm = - 0.1 * tf.reduce_sum(tf.svd(D_unl, compute_uv = False)) / self.batch_size_U
