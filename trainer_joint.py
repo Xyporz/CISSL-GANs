@@ -233,7 +233,6 @@ class Trainer(object):
         elif step % (self.config["update_rate"]+1) == 1:
         # Train the discriminator
             fetch.append(self.gG_optimizer)
-        elif step % (self.config["update_rate"]+1) == 2:
             fetch.append(self.bG_optimizer)
 
         fetch_values = self.session.run(fetch,
