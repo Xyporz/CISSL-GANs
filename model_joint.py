@@ -123,8 +123,10 @@ class Model(object):
             d_loss_unl_tf_tmp=tf.constant(0.0)
             for i in range(C_unl_logits_tf.shape[0]):
                 d_loss_unl_tf_tmp += tf.where(tf.equal(tf.argmax(tf.one_hot(D_unl_hard, depth = self.num_class),axis=1)[i], tf.constant(0,dtype=tf.int64)),tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels = tf.zeros_like(D_unl_logits_tf[i]), logits = D_unl_logits_tf[i])),tf.constant(0.0))
+                d_loss_unl_tf_tmp += tf.where(tf.equal(tf.argmax(tf.one_hot(D_unl_hard, depth = self.num_class),axis=1)[i], tf.constant(2,dtype=tf.int64)),tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels = tf.zeros_like(D_unl_logits_tf[i]), logits = D_unl_logits_tf[i])),tf.constant(0.0))
                 d_loss_unl_tf_tmp += tf.where(tf.equal(tf.argmax(tf.one_hot(D_unl_hard, depth = self.num_class),axis=1)[i], tf.constant(3,dtype=tf.int64)),tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels = tf.zeros_like(D_unl_logits_tf[i]), logits = D_unl_logits_tf[i])),tf.constant(0.0))
                 d_unl_add += tf.where(tf.equal(tf.argmax(tf.one_hot(D_unl_hard, depth = self.num_class),axis=1)[i], tf.constant(0,dtype=tf.int64)),tf.constant(1.0),tf.constant(0.0))
+                d_unl_add += tf.where(tf.equal(tf.argmax(tf.one_hot(D_unl_hard, depth = self.num_class),axis=1)[i], tf.constant(2,dtype=tf.int64)),tf.constant(1.0),tf.constant(0.0))
                 d_unl_add += tf.where(tf.equal(tf.argmax(tf.one_hot(D_unl_hard, depth = self.num_class),axis=1)[i], tf.constant(3,dtype=tf.int64)),tf.constant(1.0),tf.constant(0.0))
             d_loss_unl_tf = 0.5 * d_loss_unl_tf_tmp / d_unl_add
             
@@ -132,10 +134,8 @@ class Model(object):
             d_loss_unl_tf_c_tmp=tf.constant(0.0)
             for i in range(C_unl_logits_tf.shape[0]):
                 d_loss_unl_tf_c_tmp += tf.where(tf.equal(tf.argmax(tf.one_hot(C_unl_hard, depth = self.num_class),axis=1)[i], tf.constant(1,dtype=tf.int64)),tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels = tf.ones_like(C_unl_logits_tf[i]), logits = C_unl_logits_tf[i])),tf.constant(0.0))
-                d_loss_unl_tf_c_tmp += tf.where(tf.equal(tf.argmax(tf.one_hot(C_unl_hard, depth = self.num_class),axis=1)[i], tf.constant(2,dtype=tf.int64)),tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels = tf.ones_like(C_unl_logits_tf[i]), logits = C_unl_logits_tf[i])),tf.constant(0.0))
                 d_loss_unl_tf_c_tmp += tf.where(tf.equal(tf.argmax(tf.one_hot(C_unl_hard, depth = self.num_class),axis=1)[i], tf.constant(4,dtype=tf.int64)),tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels = tf.ones_like(C_unl_logits_tf[i]), logits = C_unl_logits_tf[i])),tf.constant(0.0))
                 c_unl_add += tf.where(tf.equal(tf.argmax(tf.one_hot(C_unl_hard, depth = self.num_class),axis=1)[i], tf.constant(1,dtype=tf.int64)),tf.constant(1.0),tf.constant(0.0))
-                c_unl_add += tf.where(tf.equal(tf.argmax(tf.one_hot(C_unl_hard, depth = self.num_class),axis=1)[i], tf.constant(2,dtype=tf.int64)),tf.constant(1.0),tf.constant(0.0))
                 c_unl_add += tf.where(tf.equal(tf.argmax(tf.one_hot(C_unl_hard, depth = self.num_class),axis=1)[i], tf.constant(4,dtype=tf.int64)),tf.constant(1.0),tf.constant(0.0))
             d_loss_unl_tf_c = 0.5 * d_loss_unl_tf_c_tmp / c_unl_add
             
