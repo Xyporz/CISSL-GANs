@@ -24,7 +24,6 @@ class Generator(object):
     def __call__(self, z, y):
         
         with tf.variable_scope(self.name, reuse=tf.AUTO_REUSE):
-            #因为生成器根本不在测试阶段使用，所以batch_norm操作不需要分训练和测试
             batch_size = z.shape[0]
             
             y = tf.concat([z, y], axis=1)

@@ -23,7 +23,6 @@ class Generator(object):
     def __call__(self, z):
         
         with tf.variable_scope(self.name, reuse=tf.AUTO_REUSE):
-            #因为生成器根本不在测试阶段使用，所以batch_norm操作不需要分训练和测试
             batch_size = z.shape[0] 
             
             net = linear(z, self.s_h8 * self.s_w8 * 512, scope="g_fc1", use_sn=self.use_sn)
