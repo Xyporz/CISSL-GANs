@@ -38,8 +38,6 @@ class Generator(object):
             net = conditional_batch_norm(net, y, is_training=self._is_train, use_sn = self.use_sn, center=True, scale=True, name="g_cbn_deconv1", use_bias=False)
             net = tf.nn.relu(net)
             
-            #net = non_local_block(net, name='self_attention_generator', use_sn=self.use_sn)
-            
             net = deconv2d(net, [batch_size, self.s_h2, self.s_w2, 128], 4, 4, 2, 2, name="g_dc2", use_sn=self.use_sn)
             net = conditional_batch_norm(net, y, is_training=self._is_train, use_sn = self.use_sn, center=True, scale=True, name="g_cbn_deconv2", use_bias=False)
             net = tf.nn.relu(net)

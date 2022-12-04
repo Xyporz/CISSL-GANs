@@ -13,7 +13,7 @@ import time
 import numpy as np
 from diffAugment import DiffAugment
 
-os.environ["CUDA_VISIBLE_DEVICES"] = '3'
+os.environ["CUDA_VISIBLE_DEVICES"] = '2'
 
 class Model(object):
 
@@ -49,9 +49,6 @@ class Model(object):
         self.x_u_c_ph = tf.placeholder(tf.float32, [self.batch_size_U] + self.IMAGE_DIM, name='unlabeled_images_for_c')
         self.y_u_ph = tf.placeholder(tf.float32, [self.batch_size_U, self.num_class], name='unlabeled_tmp')
         
-        self.embimg = tf.placeholder(tf.float32, [self.len] + self.IMAGE_DIM, name='embimg')
-        self.embimg_y = tf.placeholder(tf.float32, [self.len, self.num_class], name='embimg_label')
-        
         self.weights = tf.placeholder_with_default(0.0, [], name='weight')
         self.keep_prob_first = tf.placeholder(tf.float32, name='keep_prob_first')
         self.keep_prob = tf.placeholder(tf.float32, name='keep_prob')
@@ -73,13 +70,6 @@ class Model(object):
         
         if is_training is not None:
             fd[self.is_training] = is_training
-            
-        if is_training:
-            fd[self.keep_prob_first] = 0.2
-            fd[self.keep_prob] = 0.5
-        else:
-            fd[self.keep_prob_first] = 1.0
-            fd[self.keep_prob] = 1.0
             
         if step > 50000:
             fd[self.weights] = 1.0
@@ -118,24 +108,33 @@ class Model(object):
 
             d_loss_real_tf = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels = tf.ones_like(D_real_logits_tf), logits = D_real_logits_tf))
             d_loss_fake_good_tf = 0.5 * tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels = tf.zeros_like(D_fake_logits_good_tf), logits = D_fake_logits_good_tf))
+            #d_loss_unl_tf = 0.5 * tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels = tf.zeros_like(D_unl_logits_tf), logits = D_unl_logits_tf))
+            #d_loss_unl_tf_c = 0.5 * tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels = tf.ones_like(C_unl_logits_tf), logits = C_unl_logits_tf))
             
+            # Dynamic class-rebalancing
             d_unl_add=tf.constant(1e-10)
             d_loss_unl_tf_tmp=tf.constant(0.0)
             for i in range(C_unl_logits_tf.shape[0]):
                 d_loss_unl_tf_tmp += tf.where(tf.equal(tf.argmax(tf.one_hot(D_unl_hard, depth = self.num_class),axis=1)[i], tf.constant(0,dtype=tf.int64)),tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels = tf.zeros_like(D_unl_logits_tf[i]), logits = D_unl_logits_tf[i])),tf.constant(0.0))
                 d_loss_unl_tf_tmp += tf.where(tf.equal(tf.argmax(tf.one_hot(D_unl_hard, depth = self.num_class),axis=1)[i], tf.constant(2,dtype=tf.int64)),tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels = tf.zeros_like(D_unl_logits_tf[i]), logits = D_unl_logits_tf[i])),tf.constant(0.0))
                 d_loss_unl_tf_tmp += tf.where(tf.equal(tf.argmax(tf.one_hot(D_unl_hard, depth = self.num_class),axis=1)[i], tf.constant(3,dtype=tf.int64)),tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels = tf.zeros_like(D_unl_logits_tf[i]), logits = D_unl_logits_tf[i])),tf.constant(0.0))
+                d_loss_unl_tf_tmp += tf.where(tf.equal(tf.argmax(tf.one_hot(D_unl_hard, depth = self.num_class),axis=1)[i], tf.constant(4,dtype=tf.int64)),tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels = tf.zeros_like(D_unl_logits_tf[i]), logits = D_unl_logits_tf[i])),tf.constant(0.0))
                 d_unl_add += tf.where(tf.equal(tf.argmax(tf.one_hot(D_unl_hard, depth = self.num_class),axis=1)[i], tf.constant(0,dtype=tf.int64)),tf.constant(1.0),tf.constant(0.0))
                 d_unl_add += tf.where(tf.equal(tf.argmax(tf.one_hot(D_unl_hard, depth = self.num_class),axis=1)[i], tf.constant(2,dtype=tf.int64)),tf.constant(1.0),tf.constant(0.0))
                 d_unl_add += tf.where(tf.equal(tf.argmax(tf.one_hot(D_unl_hard, depth = self.num_class),axis=1)[i], tf.constant(3,dtype=tf.int64)),tf.constant(1.0),tf.constant(0.0))
+                d_unl_add += tf.where(tf.equal(tf.argmax(tf.one_hot(D_unl_hard, depth = self.num_class),axis=1)[i], tf.constant(4,dtype=tf.int64)),tf.constant(1.0),tf.constant(0.0))
             d_loss_unl_tf = 0.5 * d_loss_unl_tf_tmp / d_unl_add
             
             c_unl_add=tf.constant(1e-10)
             d_loss_unl_tf_c_tmp=tf.constant(0.0)
             for i in range(C_unl_logits_tf.shape[0]):
                 d_loss_unl_tf_c_tmp += tf.where(tf.equal(tf.argmax(tf.one_hot(C_unl_hard, depth = self.num_class),axis=1)[i], tf.constant(1,dtype=tf.int64)),tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels = tf.ones_like(C_unl_logits_tf[i]), logits = C_unl_logits_tf[i])),tf.constant(0.0))
-                d_loss_unl_tf_c_tmp += tf.where(tf.equal(tf.argmax(tf.one_hot(C_unl_hard, depth = self.num_class),axis=1)[i], tf.constant(4,dtype=tf.int64)),tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels = tf.ones_like(C_unl_logits_tf[i]), logits = C_unl_logits_tf[i])),tf.constant(0.0))
                 c_unl_add += tf.where(tf.equal(tf.argmax(tf.one_hot(C_unl_hard, depth = self.num_class),axis=1)[i], tf.constant(1,dtype=tf.int64)),tf.constant(1.0),tf.constant(0.0))
+                d_loss_unl_tf_c_tmp += tf.where(tf.equal(tf.argmax(tf.one_hot(C_unl_hard, depth = self.num_class),axis=1)[i], tf.constant(2,dtype=tf.int64)),tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels = tf.ones_like(C_unl_logits_tf[i]), logits = C_unl_logits_tf[i])),tf.constant(0.0))
+                c_unl_add += tf.where(tf.equal(tf.argmax(tf.one_hot(C_unl_hard, depth = self.num_class),axis=1)[i], tf.constant(2,dtype=tf.int64)),tf.constant(1.0),tf.constant(0.0))
+                d_loss_unl_tf_c_tmp += tf.where(tf.equal(tf.argmax(tf.one_hot(C_unl_hard, depth = self.num_class),axis=1)[i], tf.constant(3,dtype=tf.int64)),tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels = tf.ones_like(C_unl_logits_tf[i]), logits = C_unl_logits_tf[i])),tf.constant(0.0))
+                c_unl_add += tf.where(tf.equal(tf.argmax(tf.one_hot(C_unl_hard, depth = self.num_class),axis=1)[i], tf.constant(3,dtype=tf.int64)),tf.constant(1.0),tf.constant(0.0))
+                d_loss_unl_tf_c_tmp += tf.where(tf.equal(tf.argmax(tf.one_hot(C_unl_hard, depth = self.num_class),axis=1)[i], tf.constant(4,dtype=tf.int64)),tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels = tf.ones_like(C_unl_logits_tf[i]), logits = C_unl_logits_tf[i])),tf.constant(0.0))
                 c_unl_add += tf.where(tf.equal(tf.argmax(tf.one_hot(C_unl_hard, depth = self.num_class),axis=1)[i], tf.constant(4,dtype=tf.int64)),tf.constant(1.0),tf.constant(0.0))
             d_loss_unl_tf_c = 0.5 * d_loss_unl_tf_c_tmp / c_unl_add
             
@@ -153,7 +152,7 @@ class Model(object):
             # Feature matching loss
             F_match_loss = tf.reduce_mean(tf.abs(tf.reduce_mean(D_unl_FM,axis=0) - tf.reduce_mean(D_fake_bad_FM,axis=0)))
             
-            # # entropy term via pull-away term
+            # Entropy term via pull-away term
             feat_norm = D_fake_bad_FM / tf.norm(D_fake_bad_FM, ord='euclidean', axis=1, \
                                                  keepdims=True)
             cosine = tf.tensordot(feat_norm, feat_norm, axes=[[1], [1]])
@@ -175,7 +174,7 @@ class Model(object):
                                           tf.argmax(label, 1))
             accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
             
-            return c_loss_real, c_loss_fake_bad, c_loss_unl_bad, c_loss_unl_rein, c_loss_fake_good_pseudo, d_loss_real_tf, d_loss_fake_good_tf, d_loss_unl_tf, d_loss_unl_tf_c, c_ent, c_loss_balance, c_bnm, F_match_loss, G_pt, g_loss_bad, g_loss_good, c_loss, d_loss, g_loss, Vat_loss, GAN_loss, accuracy, d_loss_unl_tf_c_tmp, c_unl_add, d_loss_unl_tf_tmp, d_unl_add, d_wgangp_penalty, d_l2_penalty, Pi_Model, Pi_Model_scl
+            return c_loss_real, c_loss_fake_bad, c_loss_unl_bad, c_loss_unl_rein, c_loss_fake_good_pseudo, d_loss_real_tf, d_loss_fake_good_tf, d_loss_unl_tf, d_loss_unl_tf_c, c_ent, c_bnm, F_match_loss, G_pt, g_loss_bad, g_loss_good, c_loss, d_loss, g_loss, GAN_loss, accuracy, d_loss_unl_tf_c_tmp, c_unl_add, d_loss_unl_tf_tmp, d_unl_add
         # }}}
 
         # Generator {{{
@@ -195,46 +194,67 @@ class Model(object):
         # Discriminator {{{
         # =========
         x_r = DiffAugment(self.x_l_ph)
-        #x_r = self.x_l_ph
-        _, _, D_real_tf, D_real_logits_tf, _  = C(x_r, self.y_l_ph, self.keep_prob_first, self.keep_prob)
-        D_real, D_real_logits, _, _, D_real_FM = C(x_r, self.y_l_ph, self.keep_prob_first, self.keep_prob)
+        _, _, D_real_tf, D_real_logits_tf, _  = C(x_r, self.y_l_ph)
+        D_real, D_real_logits, _, _, D_real_FM = C(x_r, self.y_l_ph)
         
-        self.real_predict, D_real_logits_org, _, _, _ = C(self.x_l_ph, self.y_l_ph, self.keep_prob_first, self.keep_prob)
-        _, _, _, _, _ = C(self.embimg, self.embimg_y, self.keep_prob_first, self.keep_prob)
-        self.real_score, _, _, _, _ = C(self.x_scorecam, self.y_scorecam, self.keep_prob_first, self.keep_prob)
+        self.real_predict, D_real_logits_org, _, _, _ = C(self.x_l_ph, self.y_l_ph)
 
         # output of D for generated examples
         x_bG = DiffAugment(self.fake_image_bad)
-        #x_bG = self.fake_image_bad
-        D_fake_bad, D_fake_logits_bad, _, _, D_fake_bad_FM  = C(x_bG, self.y_g_ph, self.keep_prob_first, self.keep_prob)
+        D_fake_bad, D_fake_logits_bad, _, _, D_fake_bad_FM  = C(x_bG, self.y_g_ph)
         
         x_gG = DiffAugment(self.fake_image_good)
-        #x_gG = self.fake_image_good
-        D_fake_good, D_fake_logits_good, _, _, D_fake_good_FM = C(x_gG, self.y_g_ph, self.keep_prob_first, self.keep_prob)
-        _, _, D_fake_good_tf, D_fake_logits_good_tf, _ = C(x_gG, self.y_g_ph, self.keep_prob_first, self.keep_prob)
+        D_fake_good, D_fake_logits_good, _, _, D_fake_good_FM = C(x_gG, self.y_g_ph)
+        _, _, D_fake_good_tf, D_fake_logits_good_tf, _ = C(x_gG, self.y_g_ph)
         
         # output of D for unlabeled examples (negative example)
         x_d = DiffAugment(self.x_u_ph)
-        #x_d = self.x_u_ph
-        D_unl, D_unl_logits, _, _, D_unl_FM = C(x_d, self.y_u_ph, self.keep_prob_first, self.keep_prob)
-        D_unl_tmp, D_unl_logits_noaug, _, _, _ = C(self.x_u_ph, self.y_u_ph, self.keep_prob_first, self.keep_prob)
+        D_unl, D_unl_logits, _, _, D_unl_FM = C(x_d, self.y_u_ph)
+        D_unl_tmp, D_unl_logits_noaug, _, _, _ = C(self.x_u_ph, self.y_u_ph)
         D_unl_hard = tf.argmax(D_unl_tmp, axis = 1)
-        _, _, D_unl_tf, D_unl_logits_tf, _ = C(x_d, tf.one_hot(D_unl_hard, depth = self.num_class), self.keep_prob_first, self.keep_prob)
+        _, _, D_unl_tf, D_unl_logits_tf, _ = C(x_d, tf.one_hot(D_unl_hard, depth = self.num_class))
         
         x_c = DiffAugment(self.x_u_c_ph)
-        #x_c = self.x_u_c_ph
-        C_unl, C_unl_logits, _, _, C_unl_FM = C(x_c, self.y_u_ph, self.keep_prob_first, self.keep_prob)
-        C_unl_tmp, _, _, _, _ = C(self.x_u_c_ph, self.y_u_ph, self.keep_prob_first, self.keep_prob)
+        C_unl, C_unl_logits, _, _, C_unl_FM = C(x_c, self.y_u_ph)
+        C_unl_tmp, _, _, _, _ = C(self.x_u_c_ph, self.y_u_ph)
         C_unl_hard = tf.argmax(C_unl_tmp, axis = 1)
-        _, _, C_unl_tf, C_unl_logits_tf, _ = C(x_c, tf.one_hot(C_unl_hard, depth = self.num_class), self.keep_prob_first, self.keep_prob)
+        _, _, C_unl_tf, C_unl_logits_tf, _ = C(x_c, tf.one_hot(C_unl_hard, depth = self.num_class))
 
         self.all_preds = D_real_logits_org
-        self.all_targets = self.y_l_ph # 错误大概率就是数据和标签没对上。
+        self.all_targets = self.y_l_ph
         # }}}
         
         self.real_activations = D_real_logits
         self.fake_activations = D_fake_logits_good
         
-        self.c_loss_real, self.c_loss_fake_bad, self.c_loss_unl_bad, self.c_loss_unl_rein, self.c_loss_fake_good_pseudo, self.d_loss_real_tf, self.d_loss_fake_good_tf, self.d_loss_unl_tf, self.d_loss_unl_tf_c, self.c_ent, self.c_loss_balance, self.c_bnm, self.F_match_loss, self.G_pt, self.g_loss_bad, self.g_loss_good, self.c_loss, self.d_loss, self.g_loss, self.Vat_loss, self.GAN_loss, self.accuracy, self.d_loss_unl_tf_c_tmp, self.c_unl_add, self.d_loss_unl_tf_tmp, self.d_unl_add, self.d_wgangp_penalty, self.d_l2_penalty, self.Pi_Model, self.Pi_Model_scl = build_loss(D_real, D_real_logits, D_real_logits_org, D_real_FM, D_real_tf, D_real_logits_tf, D_fake_bad, D_fake_logits_bad, D_fake_bad_FM, D_fake_good, D_fake_logits_good, D_fake_good_tf, D_fake_logits_good_tf, D_unl, D_unl_logits, D_unl_logits_noaug, D_unl_FM, D_unl_hard, D_unl_tf, D_unl_logits_tf, C_unl_hard, C_unl_tf, C_unl_logits_tf, self.x_l_ph, self.fake_image_bad, self.fake_image_good, self.y_l_ph, self.y_g_ph, x_d, self.y_u_ph, C)
-
+        self.c_loss_real, self.c_loss_fake_bad, self.c_loss_unl_bad, self.c_loss_unl_rein, self.c_loss_fake_good_pseudo, self.d_loss_real_tf, self.d_loss_fake_good_tf, self.d_loss_unl_tf, self.d_loss_unl_tf_c, self.c_ent, self.c_bnm, self.F_match_loss, self.G_pt, self.g_loss_bad, self.g_loss_good, self.c_loss, self.d_loss, self.g_loss, self.GAN_loss, self.accuracy, self.d_loss_unl_tf_c_tmp, self.c_unl_add, self.d_loss_unl_tf_tmp, self.d_unl_add = build_loss(D_real, D_real_logits, D_real_logits_org, D_real_FM, D_real_tf, D_real_logits_tf, D_fake_bad, D_fake_logits_bad, D_fake_bad_FM, D_fake_good, D_fake_logits_good, D_fake_good_tf, D_fake_logits_good_tf, D_unl, D_unl_logits, D_unl_logits_noaug, D_unl_FM, D_unl_hard, D_unl_tf, D_unl_logits_tf, C_unl_hard, C_unl_tf, C_unl_logits_tf, self.x_l_ph, self.fake_image_bad, self.fake_image_good, self.y_l_ph, self.y_g_ph, x_d, self.y_u_ph, C)
+        
+        tf.summary.scalar("Loss/Accuracy", self.accuracy)
+        tf.summary.scalar("Loss/C_loss_real", self.c_loss_real)
+        tf.summary.scalar("Loss/C_loss_fake_bad", self.c_loss_fake_bad)
+        tf.summary.scalar("Loss/C_loss_unl_bad", self.c_loss_unl_bad)
+        tf.summary.scalar("Loss/C_loss_unl_rein", self.c_loss_unl_rein)
+        tf.summary.scalar("Loss/C_loss_fake_good_pseudo", self.c_loss_fake_good_pseudo)
+        tf.summary.scalar("Loss/C_bnm", self.c_bnm)
+        tf.summary.scalar("Loss/D_loss_real_tf", self.d_loss_real_tf)
+        tf.summary.scalar("Loss/D_loss_fake_good_tf", self.d_loss_fake_good_tf)
+        tf.summary.scalar("Loss/D_loss_unl_tf", self.d_loss_unl_tf)
+        tf.summary.scalar("Loss/D_loss_unl_tf_c", self.d_loss_unl_tf_c)
+        tf.summary.scalar("Loss/F_match_loss", self.F_match_loss)
+        tf.summary.scalar("Loss/G_pt", self.G_pt)
+        tf.summary.scalar("Loss/G_loss_bad", self.g_loss_bad)
+        tf.summary.scalar("Loss/G_loss_good", self.g_loss_good)
+        tf.summary.scalar("Loss/D_loss_unl_tf_tmp", self.d_loss_unl_tf_tmp)
+        tf.summary.scalar("Loss/D_unl_add", self.d_unl_add)
+        tf.summary.scalar("Loss/D_loss_unl_tf_c_tmp", self.d_loss_unl_tf_c_tmp)
+        tf.summary.scalar("Loss/C_unl_add", self.c_unl_add)
+        
+        tf.summary.image("Img/Fake_bad", G_bad(self.z_g_ph), max_outputs=10)
+        tf.summary.image("Img/Normal", G_good(self.z_g_ph_linspace, tf.constant([[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0]], dtype=tf.float32)), max_outputs=10)
+        tf.summary.image("Img/High", G_good(self.z_g_ph_linspace, tf.constant([[0,1,0,0,0],[0,1,0,0,0],[0,1,0,0,0],[0,1,0,0,0],[0,1,0,0,0],[0,1,0,0,0],[0,1,0,0,0],[0,1,0,0,0],[0,1,0,0,0],[0,1,0,0,0]], dtype=tf.float32)), max_outputs=10)
+        tf.summary.image("Img/PM", G_good(self.z_g_ph_linspace, tf.constant([[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0]], dtype=tf.float32)), max_outputs=10)
+        tf.summary.image("Img/AMD", G_good(self.z_g_ph_linspace, tf.constant([[0,0,0,1,0],[0,0,0,1,0],[0,0,0,1,0],[0,0,0,1,0],[0,0,0,1,0],[0,0,0,1,0],[0,0,0,1,0],[0,0,0,1,0],[0,0,0,1,0],[0,0,0,1,0]], dtype=tf.float32)), max_outputs=10)
+        tf.summary.image("Img/Glaucoma", G_good(self.z_g_ph_linspace, tf.constant([[0,0,0,0,1],[0,0,0,0,1],[0,0,0,0,1],[0,0,0,0,1],[0,0,0,0,1],[0,0,0,0,1],[0,0,0,0,1],[0,0,0,0,1],[0,0,0,0,1],[0,0,0,0,1]], dtype=tf.float32)), max_outputs=10)
+        tf.summary.image("Img/Real", self.x_l_ph, max_outputs=1)
+        tf.summary.image("Img/DiffAug", DiffAugment(self.x_l_ph), max_outputs=1)
         log.warn('\033[93mSuccessfully loaded the model.\033[0m')

@@ -32,7 +32,7 @@ def create_input_ops(dataset,
     input_ops = {}
 
     if data_id is None:
-        data_id = dataset.ids # Dataset方法ids（由@property装饰器将方法转换为属性）
+        data_id = dataset.ids
         log.info("input_ops [%s]: Using %d IDs from dataset", scope, len(data_id))
     else:
         log.info("input_ops [%s]: Using specified %d IDs", scope, len(data_id))

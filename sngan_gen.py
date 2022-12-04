@@ -36,8 +36,6 @@ class Generator(object):
                     updates_collections=None, is_training=self._is_train, center=True, scale=True, decay=0.9, epsilon=1e-5, scope="g_bn_deconv1")
             net = tf.nn.relu(net)
             
-            #net = non_local_block(net, name='self_attention_generator', use_sn=self.use_sn)
-            
             net = deconv2d(net, [batch_size, self.s_h2, self.s_w2, 128], 4, 4, 2, 2, name="g_dc2", use_sn=self.use_sn)
             net = tf.contrib.layers.batch_norm(net,
                     updates_collections=None, is_training=self._is_train, center=True, scale=True, decay=0.9, epsilon=1e-5, scope="g_bn_deconv2")

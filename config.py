@@ -17,17 +17,17 @@ def get_params():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('--debug', action='store_true', default=False)
-    parser.add_argument('--prefix', type=str, default='GANs')#修改创建的self.train_dir前缀
+    parser.add_argument('--prefix', type=str, default='GANs')
     parser.add_argument('--train_dir', type=str)
     parser.add_argument('--checkpoint', type=str, default=None)
-    parser.add_argument('--dataset', type=str, default="Orgimage_128", choices=["Orgimage_128","Efficient_L2"])
-    parser.add_argument('--dump_result', type=str2bool, default=False)#保存保存点生成图像的h5py
+    parser.add_argument('--dataset', type=str, default="Orgimage_128", choices=["Orgimage_128"])
+    parser.add_argument('--dump_result', type=str2bool, default=False)
     
     # Model
     parser.add_argument('--batch_size_G', type=int, default=16)
     parser.add_argument('--batch_size_L', type=int, default=16)
     parser.add_argument('--batch_size_U', type=int, default=16)
-    parser.add_argument('--n_z', type=int, default=128) #噪声维度
+    parser.add_argument('--n_z', type=int, default=128)
         
     # Training config {{{
     # ========
@@ -37,10 +37,10 @@ def get_params():
     parser.add_argument('--test_sample_step', type=int, default=100)
     parser.add_argument('--output_save_step', type=int, default=10000)
     # learning
-    parser.add_argument('--max_training_steps', type=int, default=500001)
+    parser.add_argument('--max_training_steps', type=int, default=250001)
     parser.add_argument('--learning_rate_g', type=float, default=2e-4)
     parser.add_argument('--learning_rate_d', type=float, default=5e-5)
-    parser.add_argument('--update_rate', type=int, default=1) #这不是学习率的改变，而是决定生成器和辨别器训练时机的参数（比如训练一次生成器再训练一次辨别器）。
+    parser.add_argument('--update_rate', type=int, default=2)
     # }}}
 
     # Testing config {{{
@@ -55,13 +55,13 @@ def get_params():
 
 def argparser(config, is_train=True):
 
-    dataset_path = os.path.join('/home/ubuntu/xieyingpeng/GBGANs/GBGANs_ICPR_N/datasets/ICPR/', config["dataset"].lower())
+    dataset_path = os.path.join('./datasets/TMI/', config["dataset"].lower())
     dataset_train, dataset_val, dataset_test = dataset.create_default_splits(dataset_path)
     dataset_train_unlabel, _ = dataset.create_default_splits_unlabel(dataset_path)
     
     config["img"] = []
     labels = []
-    with open('/home/ubuntu/xieyingpeng/GBGANs/GBGANs_ICPR_N/datasets/metadata.tsv','w') as f:
+    with open('./datasets/metadata.tsv','w') as f:
         f.write("Index\tLabel\n")
         for index, labeldex in enumerate(dataset_test.ids):
             config["img"].append(dataset_test.get_data(labeldex)[0])
@@ -69,7 +69,7 @@ def argparser(config, is_train=True):
             labels.append(label)
             f.write("%d\t%d\n" % (index, label))
     config["img"] = np.array(config["img"])
-    log.info(config["img"].shape) #(Number, 40, 4, 1)
+    log.info(config["img"].shape)
     config["len"] = config["img"].shape[0]
     config["label"] = labels
     
@@ -78,7 +78,7 @@ def argparser(config, is_train=True):
     for i in xrange(config["Size"]):
         picname.append("V{step:04d}.jpg".format(step=i+1))
     Csv=pd.DataFrame(columns=['Label'], index=picname, data=labels)
-    Csv.to_csv('/home/ubuntu/xieyingpeng/GBGANs/GBGANs_ICPR_N/datasets/Classification_Results_label.csv',encoding='gbk')
+    Csv.to_csv('./datasets/Classification_Results_label.csv',encoding='gbk')
     
     img, label = dataset_train.get_data(dataset_train.ids[0])
     config["h"] = img.shape[0]

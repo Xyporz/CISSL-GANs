@@ -22,7 +22,7 @@ class Classifier_proD(object):
         self._num_class = num_class
         self.use_sn = use_sn
 
-    def __call__(self, input, y, keep_prob_first, keep_prob):
+    def __call__(self, input, y):
     
         with tf.variable_scope(self.name, reuse=tf.AUTO_REUSE):
         
@@ -30,26 +30,18 @@ class Classifier_proD(object):
             
             net = conv2d(input, 64, 3, 3, 1, 1, name="d_conv1", use_sn=self.use_sn)
             net = lrelu(net, leak=0.1)
-            
-            #net = tf.nn.dropout(net, keep_prob_first)
-            
+                
             net = conv2d(net, 128, 4, 4, 2, 2, name="d_conv2", use_sn=self.use_sn)
             net = lrelu(net, leak=0.1)
             
             net = conv2d(net, 128, 3, 3, 1, 1, name="d_conv3", use_sn=self.use_sn)
             net = lrelu(net, leak=0.1)
-            
-            #net = tf.nn.dropout(net, keep_prob)
-            
+             
             net = conv2d(net, 256, 4, 4, 2, 2, name="d_conv4", use_sn=self.use_sn)
             net = lrelu(net, leak=0.1)
             
             net = conv2d(net, 256, 3, 3, 1, 1, name="d_conv5", use_sn=self.use_sn)
             net = lrelu(net, leak=0.1)
-            
-            #net = tf.nn.dropout(net, keep_prob)
-            
-            #net = non_local_block(net, name='self_attention_discriminator', use_sn=self.use_sn)
             
             net = conv2d(net, 512, 4, 4, 2, 2, name="d_conv6", use_sn=self.use_sn)
             net = lrelu(net, leak=0.1)
@@ -57,15 +49,10 @@ class Classifier_proD(object):
             net = conv2d(net, 512, 3, 3, 1, 1, name="d_conv7", use_sn=self.use_sn)
             net_conv = lrelu(net, leak=0.1)
             
-            #net_conv = tf.nn.dropout(net_conv, keep_prob)
-            
             h = tf.layers.flatten(net_conv)
-            #h = tf.math.reduce_mean(net_conv, axis=[1, 2])
-            
             out_logit = linear(h, self._num_class, scope="d_fc1", use_sn=self.use_sn)
             out_logit_tf = linear(h, 1, scope="final_fc", use_sn=self.use_sn)
             
-            #h = tf.math.reduce_mean(net_conv, axis=[1, 2])
             feature_matching = h
             
             log.info("[Discriminator] after final processing: %s", net_conv.shape)
