@@ -1,0 +1,2 @@
+BigGAN
+BigGAN-Deep
