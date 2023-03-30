@@ -6,5 +6,6 @@
 
 Official tensorflow implementation of the paper:
 #### Fundus Image-label Pairs Synthesis and Retinopathy Screening via GANs with Class-imbalanced Semi-supervised Learning
-
 IEEE Transactions on Medical Imaging (IEEE-TMI).
+
+This code is primarily based on [SSGAN-Tensorflow](https://github.com/clvrai/SSGAN-Tensorflow).
