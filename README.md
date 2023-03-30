@@ -5,5 +5,6 @@
 📫 My email: xieyingpeng2017@email.szu.edu.cn
 
 
-
-This is the training code for our paper that has submitted to IEEE Transactions on Medical Imaging (TMI).
+Official implementation of the paper:
+#### Fundus Image-label Pairs Synthesis and Retinopathy Screening via GANs with Class-imbalanced Semi-supervised Learning
+IEEE Transactions on Medical Imaging (IEEE-TMI).
